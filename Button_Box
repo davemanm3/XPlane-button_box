@@ -1,0 +1,291 @@
+// NEW_12_Button
+// 
+// Allows you to change the cockpit view in the sim by using push buttons on a button box device
+// Advantage: Communicates directly with X-Plane 11 (avoiding cursor focus on keyboard input issues)
+// 
+// Adapted from the following code 
+// http://www.arduino.cc/en/Tutorial/Button
+
+#include <Bounce2.h>
+// constants won't change. They're used here to 
+// set pin numbers:
+const int buttonPin1 = 1;     // the number of the pushbutton pin
+const int buttonPin2 = 2;     // the number of the pushbutton pin
+const int buttonPin3 = 3;     // the number of the pushbutton pin
+const int buttonPin4 = 4;     // the number of the pushbutton pin
+const int buttonPin5 = 5;     // the number of the pushbutton pin
+const int buttonPin6 = 6;     // the number of the pushbutton pin
+const int buttonPin7 = 7;     // the number of the pushbutton pin
+const int buttonPin8 = 8;     // the number of the pushbutton pin
+const int buttonPin9 = 9;     // the number of the pushbutton pin
+const int buttonPin10 = 10;     // the number of the pushbutton pin
+const int buttonPin11 = 11;     // the number of the pushbutton pin
+const int buttonPin12 = 12;     // the number of the pushbutton pin
+const int ledPin =  13;      // the number of the LED pin
+const int switchPin1 = 14;     // the number of the switch pin
+const int switchPin2 = 15;     // the number of the switch pin
+const int switchPin3 = 16;     // the number of the switch pin
+const int switchPin4 = 17;     // the number of the switch pin
+  // Pin 13: Arduino has an LED connected on pin 13
+  // Pin 11: Teensy 2.0 has the LED on pin 11
+  // Pin  6: Teensy++ 2.0 has the LED on pin 6
+  // Pin 13: Teensy 3.0 has the LED on pin 13
+
+Bounce button1 = Bounce();
+Bounce button2 = Bounce();
+Bounce button3 = Bounce();
+Bounce button4 = Bounce();
+Bounce button5 = Bounce();
+Bounce button6 = Bounce();
+Bounce button7 = Bounce();
+Bounce button8 = Bounce();
+Bounce button9 = Bounce();
+Bounce button10 = Bounce();
+Bounce button11 = Bounce();
+Bounce button12 = Bounce();
+Bounce switch1 = Bounce();
+Bounce switch2 = Bounce();
+Bounce switch3 = Bounce();
+Bounce switch4 = Bounce();
+
+FlightSimCommand cmd_1_a;
+FlightSimCommand cmd_1_b;
+FlightSimCommand cmd_2_a;
+FlightSimCommand cmd_2_b;
+FlightSimCommand cmd_3_a;
+FlightSimCommand cmd_3_b;
+FlightSimCommand cmd_4;
+//FlightSimCommand cmd_5;  // no longer used
+FlightSimCommand cmd_6;
+FlightSimCommand cmd_7;
+FlightSimCommand cmd_8;
+FlightSimCommand cmd_9;
+FlightSimCommand cmd_10;
+FlightSimCommand cmd_11;
+FlightSimCommand cmd_12;
+FlightSimCommand flaps_down;
+FlightSimCommand flaps_up;
+FlightSimFloat   flap_pos;
+
+int view_set;  // 1 = inside cockpit view, 2 = outside airplane view
+
+void setup() {
+  view_set = 1;  // default to inside cockpit view
+  // initialize the LED pin as an output:
+  pinMode(ledPin, OUTPUT);  
+  digitalWrite(ledPin, LOW); 
+  // initialize the button pins
+  pinMode(buttonPin1, INPUT_PULLUP);     
+  pinMode(buttonPin2, INPUT_PULLUP);     
+  pinMode(buttonPin3, INPUT_PULLUP);     
+  pinMode(buttonPin4, INPUT_PULLUP);     
+  pinMode(buttonPin5, INPUT_PULLUP);     
+  pinMode(buttonPin6, INPUT_PULLUP);     
+  pinMode(buttonPin7, INPUT_PULLUP);     
+  pinMode(buttonPin8, INPUT_PULLUP);     
+  pinMode(buttonPin9, INPUT_PULLUP);     
+  pinMode(buttonPin10, INPUT_PULLUP);     
+  pinMode(buttonPin11, INPUT_PULLUP);     
+  pinMode(buttonPin12, INPUT_PULLUP);     
+  pinMode(switchPin1, INPUT_PULLUP);     
+  pinMode(switchPin2, INPUT_PULLUP);     
+  pinMode(switchPin3, INPUT_PULLUP);     
+  pinMode(switchPin4, INPUT_PULLUP);     
+  // attach the button pins to the bounce button objects
+  button1.attach(buttonPin1);
+  button2.attach(buttonPin2);
+  button3.attach(buttonPin3);
+  button4.attach(buttonPin4);
+  button5.attach(buttonPin5);
+  button6.attach(buttonPin6);
+  button7.attach(buttonPin7);
+  button8.attach(buttonPin8);
+  button9.attach(buttonPin9);
+  button10.attach(buttonPin10);
+  button11.attach(buttonPin11);
+  button12.attach(buttonPin12);
+  switch1.attach(switchPin1);
+  switch2.attach(switchPin2);
+  switch3.attach(switchPin3);
+  switch4.attach(switchPin4);
+
+  
+// following changes on 1/29/22
+  cmd_1_a = XPlaneRef("sim/view/quick_look_17");
+  cmd_1_b = XPlaneRef("sim/view/quick_look_14");
+  cmd_2_a = XPlaneRef("sim/view/quick_look_18");
+  cmd_2_b = XPlaneRef("sim/view/quick_look_15");
+  cmd_3_a = XPlaneRef("sim/view/quick_look_19");
+  cmd_3_b = XPlaneRef("sim/view/quick_look_16");
+  cmd_4 = XPlaneRef("sim/view/chase");
+  // no cmd_5.  button #5 is now a toggle button for the view_set variable
+  cmd_6 = XPlaneRef("sim/view/circle");
+  cmd_7 = XPlaneRef("sim/general/backward");
+  cmd_8 = XPlaneRef("sim/general/up");
+  cmd_9 = XPlaneRef("sim/general/forward");
+  cmd_10 = XPlaneRef("sim/general/left");
+  cmd_11 = XPlaneRef("sim/general/down");
+  cmd_12 = XPlaneRef("sim/general/right");
+  flaps_down = XPlaneRef("sim/flight_controls/flaps_down");
+  flaps_up = XPlaneRef("sim/flight_controls/flaps_up");
+  flap_pos = XPlaneRef("sim/flightmodel/controls/flaprqst");
+
+  // signal that program is running (two flashes on the board's LED)
+  // pushing the button on the board will also restart the program
+  digitalWrite(ledPin, HIGH);
+  delay(150);  
+  digitalWrite(ledPin, LOW);
+  delay(150);  
+  digitalWrite(ledPin, HIGH);
+  delay(150);  
+  digitalWrite(ledPin, LOW);
+  delay(150);  
+}
+
+void loop(){
+
+  delay(5);  // short pause each time through
+  // normally the first step in loop() logc should be update from X-Plane
+  FlightSim.update();
+
+  if (button1.update()) {
+    if (button1.read() == LOW) {
+      if (view_set == 1) {
+        cmd_1_a.once(); }
+      else {
+        cmd_1_b.once(); }
+    }
+  }
+  if (button2.update()) {
+    if (button2.read() == LOW) {
+      if (view_set == 1) {
+        cmd_2_a.once(); }
+      else {
+        cmd_2_b.once(); }
+    }
+  }
+  if (button3.update()) {
+    if (button3.read() == LOW) {
+      if (view_set == 1) {
+        cmd_3_a.once(); }
+      else {
+        cmd_3_b.once(); }
+    }
+  }
+  if (button4.update()) {
+    if (button4.read() == LOW) {
+      cmd_4.once();
+    }
+  }
+  if (button5.update()) {
+    if (button5.read() == LOW) {
+      view_set = view_set + 1;
+      if (view_set > 2) { view_set = 1; }
+      if (view_set == 1) {
+        cmd_2_a.once(); }
+      else {
+        cmd_2_b.once(); }
+    }
+  }
+  if (button6.update()) {
+    if (button6.read() == LOW) {
+      cmd_6.once();
+    }
+  }
+  if (button7.update()) {
+    if (button7.read() == LOW) {
+      cmd_7.begin(); } 
+    else {
+      cmd_7.end(); }  
+  }
+  if (button8.update()) {
+    if (button8.read() == LOW) {
+      cmd_8.begin(); } 
+    else {
+      cmd_8.end(); }  
+  }
+  if (button9.update()) {
+    if (button9.read() == LOW) {
+      cmd_9.begin(); } 
+    else {
+      cmd_9.end(); }  
+  }
+  if (button10.update()) {
+    if (button10.read() == LOW) {
+      cmd_10.begin(); } 
+    else {
+      cmd_10.end(); }  
+  }
+  if (button11.update()) {
+    if (button11.read() == LOW) {
+      cmd_11.begin(); } 
+    else {
+      cmd_11.end(); }  
+  }
+  if (button12.update()) {
+    if (button12.read() == LOW) {
+      cmd_12.begin(); } 
+    else {
+      cmd_12.end(); }  
+  }
+
+// flap control logic - uses 4-position wafer switch where only one switch
+// position is grounded at any one time (0, 10, 20 or full flaps)
+
+//  The X-Plane variable flaprqst indicates current postion of the flaps (from 0.0 to 1.0)
+
+  if (switch1.update()) {
+    if (switch1.read() == LOW) {
+      while (flap_pos > 0.1) {
+        flaps_up.once();
+        // digitalWrite(ledPin, HIGH);  // for debug
+        delay(50);      // determined this wait time by trial and error
+        FlightSim.update();
+      }
+    }
+  }
+
+//  10 degrees = 0.33333
+  if (switch2.update()) {
+    if (switch2.read() == LOW) {
+      while (flap_pos < 0.3) {
+        flaps_down.once();
+        delay(50);
+        FlightSim.update();
+      }
+      while (flap_pos > 0.4) {
+        flaps_up.once();
+        delay(50);
+        FlightSim.update();
+      }
+    }
+  }
+  
+//  20 degrees = 0.66667
+  if (switch3.update()) {
+    if (switch3.read() == LOW) {
+      while (flap_pos < 0.6) {
+        flaps_down.once();
+        delay(50);
+        FlightSim.update();
+      }
+      while (flap_pos > 0.7) {
+        flaps_up.once();
+        delay(50);
+        FlightSim.update();
+      }
+    }
+  }
+  
+//  Full flaps = 1.0
+  if (switch4.update()) {
+    if (switch4.read() == LOW) {
+      while (flap_pos < 0.9) {
+        flaps_down.once();
+        delay(50);
+        FlightSim.update();
+      }
+    }
+  }
+
+}
